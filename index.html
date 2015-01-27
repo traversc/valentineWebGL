@@ -1,0 +1,153 @@
+<!DOCTYPE HTML>
+<html lang="en">
+	<head>
+		<title>Valentine</title>
+		<meta charset="utf-8">
+		<style type="text/css">
+			body {
+				background-color: #FFFFFF;
+				background: url(bg.png) no-repeat center center fixed; 
+				margin: 0px;
+				overflow: hidden;
+			}
+			#linkback {
+			position: absolute;
+			bottom: 0px;
+			right: 0px;
+			}
+			a #gitlink {
+				font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+				font-size: 11px;
+				text-decoration: none;
+				color: #444;
+			}
+		</style>
+		
+	</head>
+	<body onload="init()">
+	<script type="text/javascript" src="js/three.min.v69.js"></script>  
+	<script type="text/javascript" src="js/Detector.js"></script>  
+	<script type="text/javascript" src="js/Snow.js"></script>
+	<!--script type="text/javascript" src="js/helvetiker_regular.typeface.js"></script-->
+	<script type="text/javascript" src="js/lovenessthree_medium.typeface.js"></script>
+		
+		<div id="linkback"><a id="gitlink" href="https://github.com/traversc/valentineWebGL">github.com/traversc/valentineWebGL</a>
+		<script>
+			
+			args = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+			args_hash = {};
+			for(var i = 0; i < args.length; i++) {
+				  var arg = args[i].split('=');
+				  args_hash[arg[0]] = arg[1];
+			}
+			var MESSAGE1 = typeof args_hash['line1'] == "undefined" ? "" : args_hash['line1'];
+			MESSAGE1 = MESSAGE1.replace(/%27/g,"'");
+			MESSAGE1 = MESSAGE1.replace(/%20/g," ");
+			var MESSAGE2 = typeof args_hash['line2'] == "undefined" ? "" : args_hash['line2'];
+			MESSAGE2 = MESSAGE2.replace(/%27/g, "'");
+			MESSAGE2 = MESSAGE2.replace(/%20/g, " ");
+			var FONT_SIZE = typeof args_hash['fontsize'] == "undefined" ? 128 : args_hash['fontsize'];
+		
+			var SCREEN_WIDTH = window.innerWidth;
+			var SCREEN_HEIGHT = window.innerHeight;
+			var container, camera, scene, renderer;
+			var windowHalfX = window.innerWidth / 2;
+			var windowHalfY = window.innerHeight / 2;
+			
+			var particle_image = 'heart.png'; 
+			
+			THREE.ImageUtils.crossOrigin = '';
+			var texture = THREE.ImageUtils.loadTexture(particle_image);
+			
+			function init() {
+				if(MESSAGE1 == "" && MESSAGE2 == "") {
+					document.body.innerHTML = document.body.innerHTML + "Example message: <a href=index.html?line1=Happy%20Valentine%27s%20Day&line2=Love%20you%20LOL>Happy%20Valentine%27s%20Day!&line2=Love,%20you%20LOL</a>";
+					return;
+				}
+				if (! Detector.webgl) {
+					var parameters = {parent: document.body, id : "error"};
+					Detector.addGetWebGLMessage(parameters);
+					return;
+				}
+				container = document.createElement('div');
+				document.body.appendChild(container);
+				camera = new THREE.PerspectiveCamera( 75, 16/9, 1, 10000 );
+				camera.position.z = 750;
+				scene = new THREE.Scene();
+				scene.add(camera);
+				renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer: true, alpha: true});
+				renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+				
+				scene.add(new THREE.AmbientLight( 0xffffff ));
+				
+				light = new THREE.PointLight(0xffffff, 10, 1000);
+				light.position.set(-1500,0,1000);
+				scene.add(light);
+				
+				light2 = new THREE.PointLight(0xff0000, 10, 2000);
+				light2.position.set(0,0,-500);
+				scene.add(light2);
+				
+				
+				//var text_material = new THREE.MeshLambertMaterial({color: 0x883333, overdraw: 0.5 });z
+				var text_material = new THREE.MeshLambertMaterial( {color: 0xdd7777, ambient: 0x992222} );
+				var text_geometry = new THREE.TextGeometry(MESSAGE1, {size: FONT_SIZE,height: 20,curveSegments: 4,font: "lovenessthree"});
+				text_geometry.center();
+				var text_mesh = new THREE.Mesh(text_geometry, text_material);
+				text_mesh.position.y += 128;
+				text_mesh.position.z += 100;
+				text_mesh.rotation.x += Math.PI/16;
+				scene.add(text_mesh);
+				text_geometry = new THREE.TextGeometry(MESSAGE2, {size: FONT_SIZE,height: 10,curveSegments: 4,font: "lovenessthree"});
+				text_geometry.center();
+				var text_mesh = new THREE.Mesh(text_geometry, text_material);
+				text_mesh.position.y -128;
+				text_mesh.position.z +=100;
+				text_mesh.rotation.x += Math.PI/16;
+				scene.add(text_mesh);
+				
+				
+
+				pgeometry = new THREE.Geometry();
+				pmaterial = new THREE.PointCloudMaterial({map: texture,size: 20,transparent: true});
+				for (var i = 0; i < 500; i++) {
+					
+					var vertex = new THREE.Vector3();
+					vertex.x = Math.random() * 2000 - 1000;
+					vertex.y = Math.random() * 2000 - 1000;
+					vertex.z = Math.random() * 2000 - 1000;
+					pgeometry.vertices.push(vertex);
+				}
+
+				particles = new THREE.PointCloud(pgeometry, pmaterial);
+				particles.geometry.dynamic = true;
+				scene.add(particles);
+				container.appendChild(renderer.domElement);
+				setInterval(animate, 1000/60);
+				
+			}
+
+			function animate() {
+				updatePhysics2(light.position);
+				particles.geometry.verticesNeedUpdate = true;
+				if(light.position.x>1500) {
+					light.position.y = 0;
+					light.position.x = -1500;
+				}
+
+				
+				for(var i = 0; i<particles.geometry.vertices.length; i++) {
+					updatePhysics(particles.geometry.vertices[i]);
+					particles.geometry.verticesNeedUpdate = true;
+					if(particles.geometry.vertices[i].y<-1000) particles.geometry.vertices[i].y+=2000; 
+					if(particles.geometry.vertices[i].x>1000) particles.geometry.vertices[i].x-=2000; 
+					else if(particles.geometry.vertices[i].x<-1000) particles.geometry.vertices[i].x+=2000; 
+					if(particles.geometry.vertices[i].z>500) particles.geometry.vertices[i].z-=1500; 
+					else if(particles.geometry.vertices[i].z<-1000) particles.geometry.vertices[i].z+=2000; 			
+				}
+				renderer.render(scene, camera);
+			}
+
+		</script>
+	</body>
+</html>
